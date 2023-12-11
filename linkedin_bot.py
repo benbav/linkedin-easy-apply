@@ -8,6 +8,10 @@ import csv
 
 search_term = "data analyst"
 year_of_experience = "3"
+csv_save_name = "benbav_jobs.csv"
+
+linkedin_username = "benbav@berkeley.edu"
+linkedin_password = "sally1234"
 
 
 async def finish_apply(page, job_text):
@@ -20,7 +24,7 @@ async def finish_apply(page, job_text):
     today = time.strftime("%Y-%m-%d")
 
     # Write job details to the CSV file
-    with open("benbav_jobs.csv", "a", newline="") as csv_file:
+    with open(csv_save_name, "a", newline="") as csv_file:
         csv_writer = csv.writer(csv_file)
 
         # Write header if the file is empty
@@ -83,13 +87,13 @@ async def run(playwright: Playwright) -> None:
     browser = await playwright.chromium.launch(headless=False)
     context = await browser.new_context()
     page = await context.new_page()
-    # page.set_default_timeout(2000)
+
     # login
     await page.goto("https://www.linkedin.com/")
     await page.get_by_label("Email or phone").click()
-    await page.get_by_label("Email or phone").fill("benbav@berkeley.edu")
+    await page.get_by_label("Email or phone").fill(linkedin_username)
     await page.get_by_label("Email or phone").press("Tab")
-    await page.get_by_label("Password", exact=True).fill("sally1234")
+    await page.get_by_label("Password", exact=True).fill(linkedin_password)
     await page.get_by_role("button", name="Sign in").click()
 
     await page.get_by_placeholder("Search").click()
@@ -97,24 +101,36 @@ async def run(playwright: Playwright) -> None:
     await page.get_by_placeholder("Search").press("Enter")
     await page.get_by_role("button", name="Jobs").click()
     await page.get_by_label("Easy Apply filter.").click()
+
     # job filters on easy apply and remote
     await page.get_by_label("Remote filter. Clicking this button displays all Remote filter options.").click()
     await page.locator("label").filter(has_text="Remote Filter by Remote").click()
     await page.get_by_role("button", name="Apply current filter to show").click()
 
-    # result_pages = await page.query_selector_all('//li[starts-with(@class, "artdeco-pagination")]')
+    # gets count of all pages at the bottom
+    result_pages = await page.query_selector_all('//li[starts-with(@class, "artdeco-pagination")]')
 
     # Loop through result pages and apply to jobs
-    result_pages = 100
-    for i in range(result_pages):
-        # for i in range(len(result_pages)):
+    # result_pages = 100
+
+    for i in range(len(result_pages)):
         await page.click(f'//button[starts-with(@aria-label, "Page {i + 1}")]')
 
         # get all positions (jobs on each page)
-        jobs = await page.query_selector_all('//div[starts-with(@class, "job-card-list__entity-lockup artdeco-entity-lockup artdeco-entity-lockup--size-4 ember-view")]')
+        # scroll to bottom
+
+        print("scrolling to bottom")
+        time.sleep(5)
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        print("scrolled to bottom")
+        # jobs = await page.query_selector_all('//div[starts-with(@class, "job-card-list__entity-lockup artdeco-entity-lockup artdeco-entity-lockup--size-4 ember-view")]')
+        jobs = await page.query_selector_all('//div[starts-with(@class, "full-width artdeco-entity-lockup__title ember-view")]')
+
         # there are like 20 on the page - how to get all of them?
         print("found " + str(len(jobs)) + " jobs on page " + str(i + 1))
 
+        # time.sleep(10)
+        # sys.exit()
         # time.sleep(30)
 
         try:
