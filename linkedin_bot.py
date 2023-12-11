@@ -6,6 +6,9 @@ import csv
 
 # https://github.com/reddy-hari/automate-linkedin-easy-apply-jobs/blob/master/openTest.js built using this as reference
 
+search_term = "data analyst"
+year_of_experience = "3"
+
 
 async def finish_apply(page, job_text):
     # await page.get_by_role("button", name="Review").click()  # timeout=2000
@@ -60,7 +63,7 @@ async def fill_questions(page):
     if number_inputs:
         for text_input in number_inputs:
             try:
-                await text_input.fill("3", timeout=1000)
+                await text_input.fill(year_of_experience, timeout=1000)
             except Exception as e:
                 print("filling with text")
                 await text_input.fill("a", timeout=1000)
@@ -74,9 +77,6 @@ async def fill_questions(page):
                 await drop_down.select_option(value="Yes", timeout=1000)
             elif "Native or bilingual" in await drop_down.inner_text():  # for the english question
                 await drop_down.select_option(value="Native or bilingual", timeout=1000)
-
-    # free text
-    # free_text = await page.query_selector_all('//div[starts-with(@class, "artdeco-text-input--container ember-view")]//input[@type="text"]')
 
 
 async def run(playwright: Playwright) -> None:
@@ -93,7 +93,7 @@ async def run(playwright: Playwright) -> None:
     await page.get_by_role("button", name="Sign in").click()
 
     await page.get_by_placeholder("Search").click()
-    await page.get_by_placeholder("Search").fill("data analyst")
+    await page.get_by_placeholder("Search").fill(search_term)
     await page.get_by_placeholder("Search").press("Enter")
     await page.get_by_role("button", name="Jobs").click()
     await page.get_by_label("Easy Apply filter.").click()
@@ -131,24 +131,8 @@ async def run(playwright: Playwright) -> None:
                     await page.click('//div[starts-with(@class, "jobs-apply-button--top-card")]', timeout=1001)  # timeout=2000
                     # sometimes it goes straight to review
 
-                    """
-                    while true:
-                        if submit button:
-                            finish_apply():
-                            break
-                        elif fill questions:
-                            fill_questions()
-                            if review button:
-                                finish_apply():
-                                break
-                            else:
-                                hit the next button
-                        elif review button:
-                            click review
-                        elif:
-                            hit the next button
-                    """
                     try:
+                        count = 0
                         while True:
                             if await page.query_selector('//span[text()="Submit application"]'):
                                 # print("found submit application button")
@@ -157,14 +141,32 @@ async def run(playwright: Playwright) -> None:
 
                             elif await fill_questions_exists(page):
                                 print("found fill questions")
+                                count += 1
                                 try:
                                     await fill_questions(page)
-                                    if await page.query_selector('button[aria-label="Review your application"]'):
+                                    if count == 5:
+                                        print("exiting...")
+                                        await page.get_by_role("button", name="Dismiss").click()
+                                        await page.get_by_role("button", name="Discard").click()
+                                        break
+                                    elif await page.query_selector('button[aria-label="Review your application"]'):
                                         print("found review button")
                                         await page.get_by_role("button", name="Review").click()
                                     else:
-                                        print("hit next button")
-                                        await page.get_by_role("button", name="Next").click()
+                                        count += 1
+                                        if count == 5:
+                                            print("exiting...")
+                                            await page.get_by_role("button", name="Dismiss").click()
+                                            await page.get_by_role("button", name="Discard").click()
+                                            break
+                                        print("hit next button1")
+                                        try:
+                                            await page.get_by_role("button", name="Next").click()
+                                        except Exception as e:
+                                            print("exiting...")
+                                            await page.get_by_role("button", name="Dismiss").click()
+                                            await page.get_by_role("button", name="Discard").click()
+                                            break
                                 except Exception as e:
                                     print("exiting...")
                                     await page.get_by_role("button", name="Dismiss").click()
@@ -174,7 +176,14 @@ async def run(playwright: Playwright) -> None:
                                 print("found review button")
                                 await page.get_by_role("button", name="Review").click()
                             else:
-                                print("hit next button")
+                                print("count: " + str(count))
+                                count += 1
+                                if count == 5:
+                                    print("exiting...")
+                                    await page.get_by_role("button", name="Dismiss").click()
+                                    await page.get_by_role("button", name="Discard").click()
+                                    break
+                                print("hit next button2")
                                 await page.get_by_role("button", name="Next").click()
                     except Exception as e:
                         print("Error in while loop: " + str(e))
@@ -204,3 +213,8 @@ async def main() -> None:
 asyncio.run(main())
 
 # job count per page is off
+
+
+# mess up on free response jobs
+# staff data analyst operations analytics upstart
+# find where in the loop it gets stuck and then add a timer to exit
