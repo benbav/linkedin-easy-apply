@@ -6,7 +6,16 @@ import csv
 
 # https://github.com/reddy-hari/automate-linkedin-easy-apply-jobs/blob/master/openTest.js built using this as reference
 
-search_term = "data analyst"
+# change these to match your search / what will be filled in forms / where the jobs are saved
+
+# search_term = "data science internship"
+# year_of_experience = "1"
+# csv_save_name = "chichi_jobs.csv"
+
+# linkedin_username = "chi.sanyika@gmail.com"
+# linkedin_password = ""  # chichi needs to make linkeidn password
+
+search_terms = ["data analyst", "data scientist"]
 year_of_experience = "3"
 csv_save_name = "benbav_jobs.csv"
 
@@ -15,12 +24,11 @@ linkedin_password = "sally1234"
 
 
 async def finish_apply(page, job_text):
-    # await page.get_by_role("button", name="Review").click()  # timeout=2000
+    global applied_jobs
     await page.get_by_role("button", name="Submit application").click()  # timeout=2600
     print("Suessfully applied to position: " + job_text[:20] + "...")
 
     # write to csv
-
     today = time.strftime("%Y-%m-%d")
 
     # Write job details to the CSV file
@@ -38,9 +46,9 @@ async def finish_apply(page, job_text):
     time.sleep(2)
     # exit
     await page.get_by_role("button", name="Dismiss").click()
+    applied_jobs += 1
 
 
-# need to figure out free text fields or how to exit out
 async def fill_questions_exists(page):
     radio_buttons = await page.query_selector_all('//label[starts-with(@class, "t-14")]')
     number_inputs = await page.query_selector_all('//div[starts-with(@class, "artdeco-text-input--container ember-view")]//input[@type="text"]')
@@ -83,141 +91,154 @@ async def fill_questions(page):
                 await drop_down.select_option(value="Native or bilingual", timeout=1000)
 
 
+total_applied_jobs = 0
+
+
 async def run(playwright: Playwright) -> None:
-    browser = await playwright.chromium.launch(headless=False)
-    context = await browser.new_context()
-    page = await context.new_page()
+    # global search_terms # fix later
+    global applied_jobs
+    global total_applied_jobs
+    # loop over the search terms twice
+    for _ in range(2):
+        for search_term in search_terms:
+            print("Searching for " + search_term + "jobs...")
+            browser = await playwright.chromium.launch(headless=True)
+            context = await browser.new_context()
+            page = await context.new_page()
+            applied_jobs = 0
 
-    # login
-    await page.goto("https://www.linkedin.com/")
-    await page.get_by_label("Email or phone").click()
-    await page.get_by_label("Email or phone").fill(linkedin_username)
-    await page.get_by_label("Email or phone").press("Tab")
-    await page.get_by_label("Password", exact=True).fill(linkedin_password)
-    await page.get_by_role("button", name="Sign in").click()
+            # login
+            await page.goto("https://www.linkedin.com/")
+            await page.get_by_label("Email or phone").click()
+            await page.get_by_label("Email or phone").fill(linkedin_username)
+            await page.get_by_label("Email or phone").press("Tab")
+            await page.get_by_label("Password", exact=True).fill(linkedin_password)
+            await page.get_by_role("button", name="Sign in").click()
 
-    await page.get_by_placeholder("Search").click()
-    await page.get_by_placeholder("Search").fill(search_term)
-    await page.get_by_placeholder("Search").press("Enter")
-    await page.get_by_role("button", name="Jobs").click()
-    await page.get_by_label("Easy Apply filter.").click()
+            # chichi login
 
-    # job filters on easy apply and remote
-    await page.get_by_label("Remote filter. Clicking this button displays all Remote filter options.").click()
-    await page.locator("label").filter(has_text="Remote Filter by Remote").click()
-    await page.get_by_role("button", name="Apply current filter to show").click()
+            await page.get_by_placeholder("Search").click()
+            await page.get_by_placeholder("Search").fill(search_term)
+            await page.get_by_placeholder("Search").press("Enter")
+            await page.get_by_role("button", name="Jobs").click()
+            await page.get_by_label("Easy Apply filter.").click()
 
-    # gets count of all pages at the bottom
-    result_pages = await page.query_selector_all('//li[starts-with(@class, "artdeco-pagination")]')
+            # job filters on easy apply and remote
+            await page.get_by_label("Remote filter. Clicking this button displays all Remote filter options.").click()
+            await page.locator("label").filter(has_text="Remote Filter by Remote").click()
+            await page.get_by_role("button", name="Apply current filter to show").click()
 
-    # Loop through result pages and apply to jobs
-    # result_pages = 100
+            # gets count of all pages at the bottom
+            result_pages = await page.query_selector_all('//li[starts-with(@class, "artdeco-pagination")]')
 
-    for i in range(len(result_pages)):
-        await page.click(f'//button[starts-with(@aria-label, "Page {i + 1}")]')
+            # test later with the last few pages
+            # result_pages = result_pages[0:1]
 
-        # get all positions (jobs on each page)
-        # scroll to bottom
+            # Loop through result pages and apply to jobs
+            # result_pages = 100
 
-        print("scrolling to bottom")
-        time.sleep(5)
-        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        print("scrolled to bottom")
-        # jobs = await page.query_selector_all('//div[starts-with(@class, "job-card-list__entity-lockup artdeco-entity-lockup artdeco-entity-lockup--size-4 ember-view")]')
-        jobs = await page.query_selector_all('//div[starts-with(@class, "full-width artdeco-entity-lockup__title ember-view")]')
+            for i in range(len(result_pages)):
+                await page.click(f'//button[starts-with(@aria-label, "Page {i + 1}")]')
 
-        # there are like 20 on the page - how to get all of them?
-        print("found " + str(len(jobs)) + " jobs on page " + str(i + 1))
+                # get all positions (jobs on each page)
 
-        # time.sleep(10)
-        # sys.exit()
-        # time.sleep(30)
+                # jobs = await page.query_selector_all('//div[starts-with(@class, "job-card-list__entity-lockup artdeco-entity-lockup artdeco-entity-lockup--size-4 ember-view")]')
+                jobs = await page.query_selector_all('//div[starts-with(@class, "full-width artdeco-entity-lockup__title ember-view")]')
 
-        try:
-            for job_count, job in enumerate(jobs):
-                print(f"working on job {job_count + 1} on page {i + 1}")
-                job_text = await job.inner_text()  # Get text of the position
-                await job.click()  # click job
-                await job.click()
-                # print("CLICKED JOB: " + job_text[:20] + "...")
-                time.sleep(1)  # wait for easy apply to become blue
+                # there are like 20 on the page - how to get all of them?
+                print("found " + str(len(jobs)) + " jobs on page " + str(i + 1))
 
                 try:
-                    # click easy apply
-                    await page.click('//div[starts-with(@class, "jobs-apply-button--top-card")]', timeout=1001)  # timeout=2000
-                    # sometimes it goes straight to review
+                    for job_count, job in enumerate(jobs):
+                        print(f"working on job {job_count + 1} on page {i + 1}")
+                        job_text = await job.inner_text()  # Get text of the position
+                        await job.click()  # click job
+                        await job.click()
+                        # print("CLICKED JOB: " + job_text[:20] + "...")
+                        time.sleep(1)  # wait for easy apply to become blue
 
-                    try:
-                        count = 0
-                        while True:
-                            if await page.query_selector('//span[text()="Submit application"]'):
-                                # print("found submit application button")
-                                await finish_apply(page, job_text)
-                                break
+                        try:
+                            # click easy apply
+                            await page.click('//div[starts-with(@class, "jobs-apply-button--top-card")]', timeout=1001)  # timeout=2000
+                            # sometimes it goes straight to review
 
-                            elif await fill_questions_exists(page):
-                                print("found fill questions")
-                                count += 1
-                                try:
-                                    await fill_questions(page)
-                                    if count == 5:
-                                        print("exiting...")
-                                        await page.get_by_role("button", name="Dismiss").click()
-                                        await page.get_by_role("button", name="Discard").click()
+                            try:
+                                count = 0
+                                while True:
+                                    if await page.query_selector('//span[text()="Submit application"]'):
+                                        # print("found submit application button")
+                                        await finish_apply(page, job_text)
                                         break
-                                    elif await page.query_selector('button[aria-label="Review your application"]'):
-                                        print("found review button")
+
+                                    elif await fill_questions_exists(page):
+                                        print("found fill questions")
+                                        count += 1
+                                        try:
+                                            await fill_questions(page)
+                                            if count == 5:
+                                                print("exiting...")
+                                                await page.get_by_role("button", name="Dismiss").click()
+                                                await page.get_by_role("button", name="Discard").click()
+                                                break
+                                            elif await page.query_selector('button[aria-label="Review your application"]'):
+                                                print("found review button")
+                                                await page.get_by_role("button", name="Review").click()
+                                            else:
+                                                count += 1
+                                                if count == 5:
+                                                    print("exiting...")
+                                                    await page.get_by_role("button", name="Dismiss").click()
+                                                    await page.get_by_role("button", name="Discard").click()
+                                                    break
+                                                # print("hit next button1")
+                                                try:
+                                                    await page.get_by_role("button", name="Next").click()
+                                                except Exception as e:
+                                                    # print("exiting...")
+                                                    await page.get_by_role("button", name="Dismiss").click()
+                                                    await page.get_by_role("button", name="Discard").click()
+                                                    break
+                                        except Exception as e:
+                                            print("exiting...")
+                                            await page.get_by_role("button", name="Dismiss").click()
+                                            await page.get_by_role("button", name="Discard").click()
+
+                                    elif await page.query_selector('//span[text()="Review"]'):
+                                        # print("found review button")
                                         await page.get_by_role("button", name="Review").click()
                                     else:
+                                        # print("count: " + str(count))
                                         count += 1
                                         if count == 5:
                                             print("exiting...")
                                             await page.get_by_role("button", name="Dismiss").click()
                                             await page.get_by_role("button", name="Discard").click()
                                             break
-                                        print("hit next button1")
-                                        try:
-                                            await page.get_by_role("button", name="Next").click()
-                                        except Exception as e:
-                                            print("exiting...")
-                                            await page.get_by_role("button", name="Dismiss").click()
-                                            await page.get_by_role("button", name="Discard").click()
-                                            break
-                                except Exception as e:
-                                    print("exiting...")
-                                    await page.get_by_role("button", name="Dismiss").click()
-                                    await page.get_by_role("button", name="Discard").click()
+                                        # print("hit next button2")
+                                        await page.get_by_role("button", name="Next").click()
+                            except Exception as e:
+                                print("Error in while loop: " + str(e))
+                                print("exiting...")
+                                await page.get_by_role("button", name="Dismiss").click()
+                                await page.get_by_role("button", name="Discard").click()
+                                print(e)
 
-                            elif await page.query_selector('//span[text()="Review"]'):
-                                print("found review button")
-                                await page.get_by_role("button", name="Review").click()
-                            else:
-                                print("count: " + str(count))
-                                count += 1
-                                if count == 5:
-                                    print("exiting...")
-                                    await page.get_by_role("button", name="Dismiss").click()
-                                    await page.get_by_role("button", name="Discard").click()
-                                    break
-                                print("hit next button2")
-                                await page.get_by_role("button", name="Next").click()
-                    except Exception as e:
-                        print("Error in while loop: " + str(e))
-                        print("exiting...")
-                        await page.get_by_role("button", name="Dismiss").click()
-                        await page.get_by_role("button", name="Discard").click()
-                        print(e)
-
+                        except Exception as e:
+                            print("already applied to job")
+                            time.sleep(1)
                 except Exception as e:
-                    print("already applied to job")
-                    time.sleep(1)
-        except Exception as e:
-            print("Error: " + str(e))
-            print(e)
-            # exit
-            print("exiting...")
-            await page.get_by_role("button", name="Dismiss").click()
-            await page.get_by_role("button", name="Discard").click()
+                    print("Error: " + str(e))
+                    print(e)
+                    # exit
+                    print("exiting...")
+                    await page.get_by_role("button", name="Dismiss").click()
+                    await page.get_by_role("button", name="Discard").click()
+                    print("applied to " + str(applied_jobs) + " jobs")
+
+            # track number of applied jobs for each search term
+            print("applied to " + str(applied_jobs) + " jobs for " + search_term)
+            print()
+            print("overall applied to " + str(total_applied_jobs) + " jobs")
 
 
 async def main() -> None:
@@ -227,10 +248,3 @@ async def main() -> None:
 
 # Run the asyncio event loop directly
 asyncio.run(main())
-
-# job count per page is off
-
-
-# mess up on free response jobs
-# staff data analyst operations analytics upstart
-# find where in the loop it gets stuck and then add a timer to exit
