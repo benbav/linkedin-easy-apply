@@ -6,6 +6,7 @@ import csv
 import subprocess
 import os
 import sys
+import random
 
 # https://github.com/reddy-hari/automate-linkedin-easy-apply-jobs/blob/master/openTest.js built using this as reference
 
@@ -18,8 +19,11 @@ import sys
 # linkedin_username = "chi.sanyika@gmail.com"
 # linkedin_password = ""  # chichi needs to make linkeidn password
 
-# search_terms = ["data analyst", "data scientist", "financial analyst"]
-search_terms = ["data analyst"]
+search_terms = ["data analyst", "data scientist", "financial analyst"]
+
+# shuffle the search terms
+random.shuffle(search_terms)
+# search_terms = ["excel analyst", "financial analyst"]
 year_of_experience = "3"
 csv_save_name = "benbav_jobs.csv"
 
@@ -27,11 +31,13 @@ linkedin_username = "benbav@berkeley.edu"
 linkedin_password = "sally1234"
 
 total_applied_jobs = 0
+headless = False
 
 
 def update_playwright():
     try:
         result = subprocess.run(["playwright", "install"], capture_output=True, text=True)
+        print(result.stdout)
     except Exception as e:
         print(f"Error checking Playwright version: {e}")
 
@@ -39,7 +45,7 @@ def update_playwright():
 async def finish_apply(page, job_text):
     global total_applied_jobs
     await page.get_by_role("button", name="Submit application").click()  # timeout=2600
-    print("Suessfully applied to position: " + job_text[:20] + "...")
+    print("Successfully applied to position: " + job_text[:20] + "...")
 
     # write to csv
     today = time.strftime("%Y-%m-%d")
@@ -50,10 +56,10 @@ async def finish_apply(page, job_text):
 
         # Write header if the file is empty
         if csv_file.tell() == 0:
-            csv_writer.writerow(["Title", "Date"])
+            csv_writer.writerow(["Title", "Date", "Source"])
 
         # Write job details
-        csv_writer.writerow([job_text, today])
+        csv_writer.writerow([job_text, today, "linkedin"])
 
     # wait for exit window to popup
     time.sleep(2)
@@ -73,8 +79,6 @@ async def get_to_submit_page(page):
     radio_buttons = await page.query_selector_all('//label[starts-with(@class, "t-14")]')
 
     if review_button:
-        print("found review button")
-        # I think error is that it isnt findin review button
         await review_button.click()
     if next_button:
         await next_button.click()
@@ -120,6 +124,7 @@ async def get_to_submit_page(page):
                     try:
                         dropdown_options = await drop_down.inner_text()
                         option1 = dropdown_options[0]
+                        # this doesnt actually select anything
                         if "Yes" in dropdown_options:
                             print("found yes in dropdowns")
                             await drop_down.select_option(value="Yes", timeout=3000)
@@ -176,12 +181,12 @@ async def dismiss_job(page):
         print("No 'close' or 'discard' button found.")
 
 
-async def run(playwright: Playwright) -> None:
+async def run(playwright: Playwright) -> None:  # how to get variables in this?
     global applied_jobs
     global total_applied_jobs
     for search_term in search_terms:
         print("Searching for " + search_term + " jobs...")
-        browser = await playwright.chromium.launch(headless=False)
+        browser = await playwright.chromium.launch(headless=headless)
         context = await browser.new_context()
         page = await context.new_page()
         applied_jobs = 0
@@ -225,7 +230,7 @@ async def run(playwright: Playwright) -> None:
 
             try:
                 for job_count, (job, hide_job_button) in enumerate(zipped_jobs):
-                    print(f"working on job {job_count + 1}")
+                    print(f"working on job {job_count + 1} on page {i + 1}...")
                     job_text = await job.inner_text()  # Get text of the position
                     await job.click()
                     time.sleep(1)  # wait for easy apply to become blue
@@ -252,11 +257,13 @@ async def run(playwright: Playwright) -> None:
                                     count += 1
                                     try:
                                         await get_to_submit_page(page)
-                                        if count > 5:
+                                        if count > 2:
                                             # time.sleep(4)
                                             # p = input("pause")
                                             await dismiss_job(page)
-                                            print("exiting after 5 tries")
+                                            print("exiting after 2 tries")
+                                            # exit
+                                            dismiss_job(page)
                                             break
                                     except Exception as e:
                                         print("Error: " + str(e))
@@ -291,13 +298,13 @@ async def run(playwright: Playwright) -> None:
 update_playwright()
 
 
-async def main() -> None:
+async def linkedin_bot_main() -> None:
     async with async_playwright() as playwright:
         await asyncio.gather(run(playwright))
 
 
 # Run the asyncio event loop directly
-asyncio.run(main())
+asyncio.run(linkedin_bot_main())
 
 
 # play sound at the end
