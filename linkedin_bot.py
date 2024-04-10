@@ -19,12 +19,12 @@ import random
 # linkedin_username = "chi.sanyika@gmail.com"
 # linkedin_password = ""  # chichi needs to make linkeidn password
 
-search_terms = ["data analyst", "data scientist", "financial analyst"]
-
+# search_terms = ["data analyst", "data scientist", "financial analyst"]
+search_terms = ["data analyst"]
 # shuffle the search terms
 random.shuffle(search_terms)
-# search_terms = ["excel analyst", "financial analyst"]
-year_of_experience = "3"
+
+year_of_experience = "4"
 csv_save_name = "benbav_jobs.csv"
 
 linkedin_username = "benbav@berkeley.edu"
@@ -70,13 +70,12 @@ async def finish_apply(page, job_text):
 
 async def get_to_submit_page(page):
     time.sleep(1)
-    # need to fix the number form quetsions
     review_button = await page.query_selector('button[aria-label="Review your application"]')
     next_button = await page.query_selector('button[aria-label="Continue to next step"]')
 
     number_inputs = await page.query_selector_all('input.artdeco-text-input--input[type="text"]')
     drop_downs = await page.query_selector_all('//select[starts-with(@id, "text-entity-list-form-component-formElement")]')
-    radio_buttons = await page.query_selector_all('//label[starts-with(@class, "t-14")]')
+    radio_buttons = await page.query_selector_all('input:has-text("Value")')
 
     if review_button:
         await review_button.click()
@@ -151,7 +150,7 @@ async def get_to_submit_page(page):
                         else:
                             print("Error3: " + str(e))
 
-            review_button = await page.query_selector('button[aria-label="Review your application"]')
+            review_button = await page.query_select('button[aria-label="Review your application"]')
             next_button = await page.query_selector('button[aria-label="Continue to next step"]')
             if next_button:
                 await next_button.click()
@@ -217,28 +216,36 @@ async def run(playwright: Playwright) -> None:  # how to get variables in this?
         # get all positions (jobs on each page)
         time.sleep(1)
 
+        print(f"Found {len(result_pages)} pages.")
+
         for i in range(len(result_pages)):
+            print("here")
             await page.click(f'//button[starts-with(@aria-label, "Page {i + 1}")]')
 
-            time.sleep(2)
+            time.sleep(3)
 
             jobs = await page.query_selector_all('//div[starts-with(@class, "full-width artdeco-entity-lockup__title ember-view")]')
-            hide_job_buttons = await page.query_selector_all('//button[starts-with(@aria-label, "Dismiss job")]')
+            hide_job_buttons = await page.query_selector_all('//button[starts-with(@aria-label, "Dismiss")]')
             zipped_jobs = zip(jobs, hide_job_buttons)
 
-            print("found " + str(len(jobs)) + " jobs on  page " + str(i + 1))
+            print("not able to find hide job buttons") if len(hide_job_buttons) == 0 else None  # catch bug where hide button selector changes
+
+            # print out all the the lenth of the hide job buttons
+            print(len(hide_job_buttons))
+
+            print("found " + str(len(jobs)) + " jobs on page " + str(i + 1))
 
             try:
                 for job_count, (job, hide_job_button) in enumerate(zipped_jobs):
-                    print(f"working on job {job_count + 1} on page {i + 1}...")
+                    print("here")
                     job_text = await job.inner_text()  # Get text of the position
                     await job.click()
                     time.sleep(1)  # wait for easy apply to become blue
 
                     try:
                         # click easy apply
-                        await page.click('//div[starts-with(@class, "jobs-apply-button--top-card")]', timeout=1001)  # timeout=2000
-
+                        await page.click('//div[starts-with(@class, "jobs-apply-button--top-card")]', timeout=3000)  # timeout=2000
+                        print("clicked easy apply...")
                         try:
                             count = 0
                             while True:
@@ -304,12 +311,16 @@ async def linkedin_bot_main() -> None:
 
 
 # Run the asyncio event loop directly
-asyncio.run(linkedin_bot_main())
+try:
+    asyncio.run(linkedin_bot_main())
+except Exception as e:
+    print("Error: " + str(e))
+    asyncio.run(linkedin_bot_main())
 
 
 # play sound at the end
-os.system("afplay /System/Library/Sounds/Glass.aiff")
+# os.system("afplay /System/Library/Sounds/Glass.aiff")
 print("applied to " + str(total_applied_jobs) + " jobs")
 
-# ok just need to spot test the forms on some jobs to fill out more
-# just sleep on the next error to get the job title that isn't working
+
+# this doesn't work now - it just goes to the next page without clicking easy apply
