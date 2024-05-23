@@ -27,8 +27,8 @@ random.shuffle(search_terms)
 year_of_experience = "4"
 csv_save_name = "benbav_jobs.csv"
 
-linkedin_username = "benbav@berkeley.edu"
-linkedin_password = "sally1234"
+linkedin_username = "USER"
+linkedin_password = "PASSWORD"
 
 total_applied_jobs = 0
 headless = False
