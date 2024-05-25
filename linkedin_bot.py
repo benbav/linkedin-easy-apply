@@ -207,8 +207,3 @@ if __name__ == "__main__":
         asyncio.run(linkedin_bot_main())
     os.system("afplay /System/Library/Sounds/Glass.aiff")
     logger.info(f"Applied to {total_applied_jobs} jobs")
-
-
-# this actually works better I just want it to go through more forms with it - that's the next step
-# isolate a form that doesn't work with a pause first
-# then try and fill that form or see what type of form it is
