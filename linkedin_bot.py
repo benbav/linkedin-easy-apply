@@ -44,6 +44,7 @@ async def finish_apply(page, job_text):
         csv_writer.writerow([job_text, today, "linkedin"])
 
     time.sleep(2)
+
     await page.get_by_role("button", name="Dismiss").click()
     total_applied_jobs += 1
 
@@ -151,7 +152,7 @@ async def process_job(page, job, hide_job_button):
         while True:
             if await page.query_selector('//span[text()="Submit application"]'):
                 await finish_apply(page, job_text)
-                await hide_job_button.click()
+                # await hide_job_button.click()
                 break
             else:
                 count += 1
@@ -161,7 +162,7 @@ async def process_job(page, job, hide_job_button):
                     break
     except Exception as e:
         logger.error(f"Error processing job: {e}")
-        # pause = input("Press Enter to continue...")
+        pause = input("Press Enter to continue...")
         await dismiss_job(page)
 
 
