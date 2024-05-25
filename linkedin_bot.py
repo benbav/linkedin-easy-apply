@@ -14,7 +14,7 @@ load_dotenv()
 SEARCH_TERMS = ["data analyst"]
 random.shuffle(SEARCH_TERMS)
 YEAR_OF_EXPERIENCE = "4"
-CSV_SAVE_NAME = "benbav_jobs.csv"
+CSV_SAVE_NAME = "linkedin_applied_jobs.csv"
 LINKEDIN_USERNAME = os.getenv("username")
 LINKEDIN_PASSWORD = os.getenv("password")
 HEADLESS = False
