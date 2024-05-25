@@ -142,7 +142,6 @@ async def process_job(page, job, hide_job_button):
 
     if applied:
         logger.info("Already applied to this job.")
-        pause = input("Press Enter to continue...2")
         return
     try:
         await page.click('//div[starts-with(@class, "jobs-apply-button--top-card")]', timeout=3000)
