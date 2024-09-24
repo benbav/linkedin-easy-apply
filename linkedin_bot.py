@@ -17,18 +17,23 @@ YEAR_OF_EXPERIENCE = "4"
 CSV_SAVE_NAME = "linkedin_applied_jobs.csv"
 LINKEDIN_USERNAME = os.getenv("username")
 LINKEDIN_PASSWORD = os.getenv("password")
-HEADLESS = False
+HEADLESS = True
 
 # Global variable to count total applied jobs
 total_applied_jobs = 0
 
-# Logging configuration
-logging.basicConfig(level=logging.INFO)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    filename= os.path.join(os.getcwd(), 'logfile.log'),  # Specify the complete file path
+    format='%(asctime)s - %(levelname)s - %(message)s',  # Include date in the log
+    datefmt='%Y-%m-%d %H:%M:%S'  # Define the date format (optional)
+)
 logger = logging.getLogger(__name__)
 
 
 def update_playwright():
-    os.system("playwright install")
+    os.system("playwright install chromium")
 
 
 async def finish_apply(page, job_text):
@@ -118,10 +123,13 @@ async def dismiss_job(page):
 
 
 async def login_to_linkedin(page):
-    await page.goto("https://www.linkedin.com/")
-    await page.get_by_label("Email or phone").fill(LINKEDIN_USERNAME)
-    await page.get_by_label("Password", exact=True).fill(LINKEDIN_PASSWORD)
-    await page.get_by_role("button", name="Sign in").click()
+    try:
+        await page.goto("https://www.linkedin.com/")
+        await page.get_by_label("Email or phone").fill(LINKEDIN_USERNAME)
+        await page.get_by_label("Password", exact=True).fill(LINKEDIN_PASSWORD)
+        await page.get_by_role("button", name="Sign in").click()
+    except Exception as e:
+        await page.screenshot(path=os.path.join(os.curdir, 'failure.png'))
 
 
 async def search_jobs(page, search_term):
@@ -167,6 +175,7 @@ async def process_job(page, job, hide_job_button):
 
 
 async def run(playwright: Playwright):
+    # take a screenshot on error... add this in
     global total_applied_jobs
     for search_term in SEARCH_TERMS:
         browser = await playwright.chromium.launch(headless=HEADLESS)
@@ -204,6 +213,9 @@ if __name__ == "__main__":
         asyncio.run(linkedin_bot_main())
     except Exception as e:
         logger.error(f"Error running bot: {e}")
-        asyncio.run(linkedin_bot_main())
-    os.system("afplay /System/Library/Sounds/Glass.aiff")
-    logger.info(f"Applied to {total_applied_jobs} jobs")
+        # maybe also take a screenshot if an error
+        # asyncio.run(linkedin_bot_main())
+
+    # os.system("afplay /System/Library/Sounds/Glass.aiff")
+
+    # logger.info(f"Applied to {total_applied_jobs} jobs")
